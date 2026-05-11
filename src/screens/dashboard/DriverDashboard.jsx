@@ -118,8 +118,13 @@ const DriverDashboard = () => {
         </div>
         <nav style={styles.nav}>
           <div style={{ ...styles.navItem, ...styles.navItemActive }}>🚘 My Vehicles</div>
-          <div style={styles.navItem} onClick={() => navigate("/driver/new-ad-opportunities")}>📢 New Ad Opportunities</div>
-          <div style={styles.navItem} onClick={() => navigate("/driver/requests-to-driver")}>📩 Your Requests</div>
+          {/* <div style={styles.navItem} onClick={() => navigate("/driver/new-ad-opportunities")}>📢 New Ad Opportunities</div> */}
+
+          <div style={styles.navItem} onClick={() => navigate(`/driver/available-agencies`)}>
+            🏢 Available Agencies
+          </div>
+
+          {/* <div style={styles.navItem} onClick={() => navigate("/driver/requests-to-driver")}>📩 Your Requests</div> */}
           <div
             style={{ ...styles.navItem }}
             onClick={() => navigate(`/driver/ad-simulation`) }

@@ -13,6 +13,16 @@ import VehLocationScreen from "../screens/location/VehLocationScreen";
 import MatchDrivers from "../screens/advertiser/MatchDrivers";
 import SentRequests from "../screens/advertiser/SentRequests";
 import AdSimulationScreen from "../screens/driver/AdSimulationScreen";
+import RouteScreen from "../screens/location/RouteScreen";
+import AgencyDashboard from "../screens/dashboard/AgencyDashboard";
+import AvailableAgencies from "../screens/driver/AvailableAgencies";
+import LinkedDrivers from "../screens/agency/LinkedDrivers";
+import ReceiveRequests from "../screens/agency/ReceivedRequests";
+import ReceivedRequests from "../screens/agency/ReceivedRequests";
+import FindAgencies from "../screens/advertiser/FindAgencies";
+import SimulateAdsButton from "../screens/agency/SimulateAdsButton";
+import AdSimulationMap from "../screens/agency/AdSimulationMap";
+import AdSimulationForm from "../screens/agency/AdSimulationForm";
 
 // Protect routes: redirect to login if not logged in, or wrong role
 const ProtectedRoute = ({ element, requiredRole }) => {
@@ -41,6 +51,11 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="/agency"
+          element={<ProtectedRoute element={<AgencyDashboard />} requiredRole="g" />}
+        />
+
+        <Route
           path="/driver/new-ad-opportunities"
           element={<NewAdOpportunities />}
         />
@@ -60,6 +75,11 @@ const AppRoutes = () => {
         <Route
           path="/location/ad-location-screen/:adId"
           element={<LocationScreen />}
+        />
+
+         <Route
+          path="/location/ad-route-screen/:adId"
+          element={<RouteScreen />}
         />
 
         <Route
@@ -83,10 +103,50 @@ const AppRoutes = () => {
           element={<SentRequests />}
         />
 
-    <Route
+        <Route
           path="/driver/ad-simulation/"
           element={<AdSimulationScreen />}
         />
+
+        <Route
+          path="/driver/available-agencies/"
+          element={<AvailableAgencies />}
+        />
+
+        <Route
+          path="/agency/linked-drivers/"
+          element={<LinkedDrivers />}
+        />
+
+        <Route
+          path="/agency/received-requests/"
+          element={<ReceivedRequests />}
+        />
+
+        <Route
+          path="/advertiser/find-agencies/:adId"
+          element={<FindAgencies />}
+        />
+
+        {/* SIMULATION SCREEN */}
+        <Route
+          path="/agency/ad-simulation-form"
+          element={<AdSimulationForm />}
+        />
+
+        <Route
+          path="/agency/ad-simulation-map"
+          element={<AdSimulationMap />}
+        />
+
+        <Route
+          path="/agency/simulate-ads-button"
+          element={<SimulateAdsButton />}
+        />
+
+        
+
+
 
 
         <Route path="*" element={<Navigate to="/" replace />} />

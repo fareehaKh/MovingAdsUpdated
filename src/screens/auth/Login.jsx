@@ -23,8 +23,10 @@ const Login = () => {
       setUserSession(user);
       if (user.role === "a") {
         navigate("/advertiser");
-      } else {
+      } else if (user.role === "d") {
         navigate("/driver");
+      } else if (user.role === "g") {
+        navigate("/agency");
       }
     } catch (err) {
       setError(err.response?.data?.Message || err.response?.data || "Login failed. Check credentials.");

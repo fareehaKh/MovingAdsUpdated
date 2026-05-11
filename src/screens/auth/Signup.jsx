@@ -75,6 +75,7 @@ const Signup = () => {
           {[
             { value: "d", label: "🚗 Driver", desc: "I own vehicles" },
             { value: "a", label: "📢 Advertiser", desc: "I post ads" },
+            { value: "g", label: "🏢 Agency", desc: "I manage campaigns" },
           ].map((r) => (
             <div
               key={r.value}
