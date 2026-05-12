@@ -23,6 +23,7 @@ import FindAgencies from "../screens/advertiser/FindAgencies";
 import SimulateAdsButton from "../screens/agency/SimulateAdsButton";
 import AdSimulationMap from "../screens/agency/AdSimulationMap";
 import AdSimulationForm from "../screens/agency/AdSimulationForm";
+import TripStatsScreen from "../screens/driver/TripStatsScreen";
 
 // Protect routes: redirect to login if not logged in, or wrong role
 const ProtectedRoute = ({ element, requiredRole }) => {
@@ -142,6 +143,11 @@ const AppRoutes = () => {
         <Route
           path="/agency/simulate-ads-button"
           element={<SimulateAdsButton />}
+        />
+
+        <Route
+          path="/driver/trip-stats/:vehicleReg"
+          element={<TripStatsScreen />}
         />
 
         

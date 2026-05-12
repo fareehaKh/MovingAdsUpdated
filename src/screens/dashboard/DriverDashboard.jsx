@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUserSession, clearUserSession } from "../../utils/session";
-import { registerVehicleApi, getVehiclesByOwnerApi } from "../../api/authapi";
+import { registerVehicleApi, getVehiclesByOwnerApi, getDriverTripsApi } from "../../api/authapi";
 
 // ─── Cloudinary config ────────────────────────────────────────────
 const CLOUDINARY_CLOUD_NAME = "dgolfena6";   // ← replace
@@ -243,6 +243,12 @@ const DriverDashboard = () => {
                     <span style={{ ...styles.statusBadge, background: statusColor(v.VehicleStatus) + "22", color: statusColor(v.VehicleStatus) }}>
                       ● {v.VehicleStatus}
                     </span>
+                    <button
+                      style={styles.tripStatsBtn}
+                      onClick={() => navigate(`/driver/trip-stats/${v.VehicleReg}`)}
+                    >
+                      📊 Trip Stats
+                    </button>
                   </div>
                   <div style={styles.regRow}>🔖 {v.VehicleReg}</div>
                    <div style={styles.iconButtonRow}>
@@ -394,6 +400,16 @@ const styles = {
     transition: "0.2s ease",
     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
   },
+  tripStatsBtn: {
+  border: "none",
+  padding: "6px 12px",
+  borderRadius: "20px",
+  background: "rgba(59,130,246,0.15)",
+  color: "#60a5fa",
+  fontSize: "11px",
+  fontWeight: 600,
+  cursor: "pointer",
+},
 
 };
 
