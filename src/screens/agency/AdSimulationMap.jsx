@@ -1,3 +1,5 @@
+////////////////////////////////   RESPONSIVE   ////////////////////////////////////
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { saveDriverActivityLogApi } from "../../api/authapi";
 
@@ -62,17 +64,6 @@ function loadGoogleMaps(apiKey) {
 
 // ─────────────────────────────────────────────────────────────────
 //  MAP CANVAS
-//
-//  FIX 1 — Fences on load:
-//    Map init and initial fence draw now happen in ONE useEffect
-//    (triggered by mapsLoaded). We don't wait for a second render
-//    cycle, so polygons appear the moment the map tiles load.
-//
-//  FIX 2 — Clicks inside polygons:
-//    Every Polygon gets its own "click" listener that calls the same
-//    handleMapClick handler as bare-map clicks. Google Maps Polygon
-//    click events give us a LatLng just like map click events do.
-//    Polygons are NOT set clickable:false, so taps inside them fire.
 // ─────────────────────────────────────────────────────────────────
 function MapCanvas({
   adsData,
@@ -86,14 +77,12 @@ function MapCanvas({
   const mapDivRef          = useRef(null);
   const mapRef             = useRef(null);
   const mapInitDoneRef     = useRef(false);
-  // Each entry: { poly: Polygon, listeners: MapsEventListener[] }
   const fenceEntriesRef    = useRef([]);
   const routePolyRef       = useRef(null);
   const drivenPolyRef      = useRef(null);
   const waypointMarkersRef = useRef([]);
   const carMarkerRef       = useRef(null);
 
-  // Always-current refs — avoids ALL stale closure bugs
   const onCanvasClickRef   = useRef(onCanvasClick);
   const routeLockedRef     = useRef(routeLocked);
   const activeAdIndexesRef = useRef(activeAdIndexes);
@@ -107,19 +96,12 @@ function MapCanvas({
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [loadError,  setLoadError]  = useState(null);
 
-  // ── Shared click dispatcher ─────────────────────────────────────
-  // Used by BOTH the map click listener AND each polygon click listener.
-  // Reads refs so it never captures a stale value.
   const handleMapClick = useCallback((latLng) => {
     if (routeLockedRef.current) return;
     onCanvasClickRef.current({ lat: latLng.lat(), lng: latLng.lng() });
   }, []);
 
-  // ── drawFences helper ───────────────────────────────────────────
-  // Clears old polygons (and their listeners), then redraws with
-  // fresh active state. Each new polygon gets a click listener.
   const drawFences = useCallback((map, ads, activeIdxs) => {
-    // Remove old polygons + attached listeners
     fenceEntriesRef.current.forEach(({ poly, listeners }) => {
       listeners.forEach((l) => window.google.maps.event.removeListener(l));
       poly.setMap(null);
@@ -140,26 +122,20 @@ function MapCanvas({
         fillOpacity:   isActive ? 0.28 : 0.12,
         map,
         zIndex:   isActive ? 3 : 1,
-        clickable: true,   // must be true so clicks inside fire
+        clickable: true,
       });
 
-      // Forward polygon clicks to the same handler as map clicks
       const clickListener = poly.addListener("click", (e) => handleMapClick(e.latLng));
-
       fenceEntriesRef.current.push({ poly, listeners: [clickListener] });
     });
   }, [handleMapClick]);
 
-  // ── 1. Load SDK ─────────────────────────────────────────────────
   useEffect(() => {
     loadGoogleMaps(GOOGLE_MAPS_API_KEY)
       .then(() => setMapsLoaded(true))
       .catch((e) => setLoadError(e.message));
   }, []);
 
-  // ── 2. Init map + draw fences immediately in ONE effect ─────────
-  // This guarantees fences are drawn right after the map instance
-  // exists, without waiting for a separate effect cycle.
   useEffect(() => {
     if (!mapsLoaded || !mapDivRef.current || mapInitDoneRef.current) return;
     mapInitDoneRef.current = true;
@@ -183,30 +159,21 @@ function MapCanvas({
     });
     mapRef.current = map;
 
-    // Bare-map clicks
     map.addListener("click", (e) => handleMapClick(e.latLng));
-
-    // Draw fences immediately (synchronous — map already exists here)
     drawFences(map, ads, activeAdIndexesRef.current);
 
-    // Fit to fence bounds right away
     if (allPoints.length) {
       const bounds = new window.google.maps.LatLngBounds();
       allPoints.forEach((p) => bounds.extend({ lat: p.lat, lng: p.lng }));
       map.fitBounds(bounds, 60);
     }
   }, [mapsLoaded, handleMapClick, drawFences]);
-  // ^ drawFences is stable (useCallback with no changing deps)
 
-  // ── 3. Redraw fences when adsData or activeAdIndexes changes ────
-  // The guard `!mapRef.current` skips this on the very first render
-  // because the init effect above handles the first draw.
   useEffect(() => {
     if (!mapRef.current) return;
     drawFences(mapRef.current, adsData, activeAdIndexes);
   }, [adsData, activeAdIndexes, drawFences]);
 
-  // ── 4. Route polylines ──────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -240,7 +207,6 @@ function MapCanvas({
     }
   }, [route, currentStep]);
 
-  // ── 5. Waypoint markers ─────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
     waypointMarkersRef.current.forEach((m) => m.setMap(null));
@@ -267,7 +233,6 @@ function MapCanvas({
     });
   }, [route, routeLocked]);
 
-  // ── 6. Car marker ───────────────────────────────────────────────
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -309,7 +274,6 @@ function MapCanvas({
     }
   }, [route, currentStep, isRunning, routeLocked]);
 
-  // ── Render ──────────────────────────────────────────────────────
   if (loadError) {
     return (
       <div style={{
@@ -343,6 +307,148 @@ function MapCanvas({
       ref={mapDivRef}
       style={{ width: "100%", height: "100%", cursor: routeLocked ? "default" : "crosshair" }}
     />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  TIME PICKER MODAL
+// ─────────────────────────────────────────────────────────────────
+function TimePickerModal({ onConfirm, onCancel }) {
+  // Default to current local time as HH:MM
+  const now = new Date();
+  const defaultTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const [pickedTime, setPickedTime] = useState(defaultTime);
+
+  const handleConfirm = () => {
+    if (!pickedTime) return;
+    const [h, m] = pickedTime.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    onConfirm(d);
+  };
+
+  return (
+    <div style={{
+      position: "absolute", inset: 0,
+      background: "rgba(0,0,0,.60)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 50,
+      animation: "adSimFadeIn .2s ease",
+    }}>
+      <div style={{
+        background: "white",
+        borderRadius: 24,
+        padding: "32px 28px 24px",
+        width: 300,
+        boxShadow: "0 16px 48px rgba(0,0,0,.3)",
+        display: "flex", flexDirection: "column", gap: 20,
+        animation: "adSimSlideUp .25s ease",
+      }}>
+        {/* Icon + Title */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16,
+            background: "linear-gradient(135deg,#00c4aa,#00a896)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 6px 18px rgba(0,196,170,.35)",
+          }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#1a1a2e" }}>Set Simulation Time</div>
+            <div style={{ fontSize: 12, color: "#999", marginTop: 4, lineHeight: 1.5 }}>
+              Choose the clock time for this trip.<br/>It will tick forward from this moment.
+            </div>
+          </div>
+        </div>
+
+        {/* Time Input */}
+        <div style={{
+          background: "linear-gradient(135deg,rgba(0,196,170,.07),rgba(0,168,150,.04))",
+          border: "2px solid rgba(0,196,170,.25)",
+          borderRadius: 16,
+          padding: "14px 16px",
+          display: "flex", flexDirection: "column", gap: 6,
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#00c4aa", letterSpacing: 0.8 }}>
+            START TIME
+          </div>
+          <input
+            type="time"
+            value={pickedTime}
+            onChange={(e) => setPickedTime(e.target.value)}
+            style={{
+              fontSize: 32,
+              fontWeight: 800,
+              color: "#1a1a2e",
+              border: "none",
+              background: "transparent",
+              outline: "none",
+              width: "100%",
+              letterSpacing: 2,
+              fontFamily: "'DM Sans','Segoe UI',sans-serif",
+            }}
+          />
+        </div>
+
+        {/* Note */}
+        <div style={{
+          display: "flex", alignItems: "flex-start", gap: 8,
+          background: "rgba(255,152,0,.07)",
+          border: "1px solid rgba(255,152,0,.2)",
+          borderRadius: 10, padding: "9px 11px",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF9800" strokeWidth="2.2" style={{ flexShrink: 0, marginTop: 1 }}>
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span style={{ fontSize: 11, color: "#e65100", lineHeight: 1.5 }}>
+            This time will be sent as <strong>RecordedAt</strong> in activity logs, not the device's real UTC time.
+          </span>
+        </div>
+
+        {/* Buttons */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1, padding: "12px 0", borderRadius: 12,
+              border: "1.5px solid #e8e8e8",
+              background: "white", fontSize: 13, fontWeight: 700,
+              color: "#999", cursor: "pointer",
+              transition: "background .15s",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            disabled={!pickedTime}
+            onClick={handleConfirm}
+            style={{
+              flex: 2, padding: "12px 0", borderRadius: 12, border: "none",
+              background: pickedTime
+                ? "linear-gradient(135deg,#00c4aa,#00a896)"
+                : "#e0e0e0",
+              fontSize: 13, fontWeight: 800,
+              color: "white",
+              cursor: pickedTime ? "pointer" : "default",
+              boxShadow: pickedTime ? "0 6px 18px rgba(0,196,170,.4)" : "none",
+              transition: "all .2s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Start Trip
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -694,11 +800,27 @@ export default function AdSimulationMap({
   const rotateTimerRef    = useRef(null);
   const countdownTimerRef = useRef(null);
 
+  // ── Time picker state ──────────────────────────────────────────
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // liveTime: starts from simulationStartTime (or now), ticks every second while running
   const [liveTime, setLiveTime] = useState(simulationStartTime || new Date());
+  const liveTimeIntervalRef = useRef(null);
+
+  // Start ticking when isRunning becomes true, stop when false
   useEffect(() => {
-    const id = setInterval(() => setLiveTime((p) => new Date(p.getTime() + 1000)), 1000);
-    return () => clearInterval(id);
-  }, []);
+    if (isRunning) {
+      liveTimeIntervalRef.current = setInterval(
+        () => setLiveTime((p) => new Date(p.getTime() + 1000)),
+        1000
+      );
+    } else {
+      clearInterval(liveTimeIntervalRef.current);
+      liveTimeIntervalRef.current = null;
+    }
+    return () => clearInterval(liveTimeIntervalRef.current);
+  }, [isRunning]);
+
   const clockStr = [liveTime.getHours(), liveTime.getMinutes(), liveTime.getSeconds()]
     .map((n) => String(n).padStart(2, "0")).join(":");
 
@@ -720,6 +842,7 @@ export default function AdSimulationMap({
     clearInterval(rotateTimerRef.current);
     clearInterval(countdownTimerRef.current);
     clearInterval(activityTimerRef.current);
+    clearInterval(liveTimeIntervalRef.current);
   }, []);
 
   // ── zone detection ──────────────────────────────────────────────
@@ -795,13 +918,20 @@ export default function AdSimulationMap({
 
     isSendingLog.current = true;
     try {
+      // ── Use simulated clock time (local, NOT UTC) ──
+      const t   = s.liveTime;
+      const pad = (n) => String(n).padStart(2, "0");
+      const recordedAt =
+        `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}` +
+        `T${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
+
       const res  = await saveDriverActivityLogApi({
         DriverId:   driverId,
         VehicleReg: vehicle.VehicleReg,
         AdId:       ad.adId,
         Latitude:   pos.lat,
         Longitude:  pos.lng,
-        RecordedAt: s.liveTime.toLocaleString("sv-SE").replace("T", " "),
+        RecordedAt: recordedAt,
       });
       const data = res.data ?? res;
       addToast({
@@ -881,7 +1011,17 @@ export default function AdSimulationMap({
     setCurrentStep(0);
     setActiveAdIndexes([]);
     setInOverlapZone(false);
-  }, [stopTrip]);
+    // Reset clock back to original simulationStartTime or now
+    setLiveTime(simulationStartTime || new Date());
+  }, [stopTrip, simulationStartTime]);
+
+  // Called when user confirms time in picker
+  const handleTimeConfirmed = useCallback((chosenDate) => {
+    setLiveTime(chosenDate);
+    setShowTimePicker(false);
+    // Small delay so state settles before trip starts
+    setTimeout(() => startTrip(), 0);
+  }, [startTrip]);
 
   // Reads stateRef → never stale, no deps needed
   const handleCanvasClick = useCallback((point) => {
@@ -999,8 +1139,9 @@ export default function AdSimulationMap({
 
             {/* Start / Stop / Reset */}
             <div style={{ position: "absolute", bottom: 150, right: 14, display: "flex", flexDirection: "column", alignItems: "flex-end", zIndex: 5 }}>
+              {/* START — opens time picker first */}
               {!routeLocked && route.length >= 2 && !isRunning && (
-                <FloatingBtn label="Start" color="#4CAF50" onClick={startTrip}>
+                <FloatingBtn label="Start" color="#4CAF50" onClick={() => setShowTimePicker(true)}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 </FloatingBtn>
               )}
@@ -1064,6 +1205,15 @@ export default function AdSimulationMap({
                 {simpleToast}
               </div>
             )}
+
+            {/* ── TIME PICKER MODAL ── */}
+            {showTimePicker && (
+              <TimePickerModal
+                onConfirm={handleTimeConfirmed}
+                onCancel={() => setShowTimePicker(false)}
+              />
+            )}
+
           </div>
         )}
       </div>
@@ -1111,6 +1261,7 @@ if (typeof document !== "undefined" && !document.getElementById("adSimMapStyle")
     @keyframes adSimSpin    { to { transform: rotate(360deg); } }
     @keyframes adSimPulse   { from { opacity:1; } to { opacity:0.6; } }
     @keyframes adSimSlideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes adSimFadeIn  { from { opacity:0; } to { opacity:1; } }
   `;
   document.head.appendChild(s);
 }

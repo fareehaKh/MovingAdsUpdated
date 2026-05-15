@@ -585,13 +585,22 @@ const SentRequests = () => {
           </div>
 
           <div
+            style={{
+              ...styles.navItem,
+            }}
+            onClick={() => navigate("/advertiser/ad-stats")}
+          >
+            📈 Ad Stats
+          </div>
+
+          {/* <div
             style={styles.navItem}
             onClick={() =>
               navigate("/advertiser/find-agencies")
             }
           >
             🏢 Find Agencies
-          </div>
+          </div> */}
         </nav>
 
         {/* FOOTER */}

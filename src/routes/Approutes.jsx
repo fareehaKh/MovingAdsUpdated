@@ -20,10 +20,14 @@ import LinkedDrivers from "../screens/agency/LinkedDrivers";
 import ReceiveRequests from "../screens/agency/ReceivedRequests";
 import ReceivedRequests from "../screens/agency/ReceivedRequests";
 import FindAgencies from "../screens/advertiser/FindAgencies";
-import SimulateAdsButton from "../screens/agency/SimulateAdsButton";
 import AdSimulationMap from "../screens/agency/AdSimulationMap";
 import AdSimulationForm from "../screens/agency/AdSimulationForm";
 import TripStatsScreen from "../screens/driver/TripStatsScreen";
+import AdStatsScreen from "../screens/advertiser/AdStatsScreen";
+import AgencyAnalyticsScreen from "../screens/agency/AgencyAnalyticsScreen";
+import AdvertiserBillingScreen from "../screens/advertiser/AdvertiserBilling";
+import DriverBillingScreen from "../screens/driver/DriverBillingScreen";
+import AgencyBillingScreen from "../screens/agency/AgencyBillingScreen";
 
 // Protect routes: redirect to login if not logged in, or wrong role
 const ProtectedRoute = ({ element, requiredRole }) => {
@@ -103,6 +107,21 @@ const AppRoutes = () => {
           path="/advertiser/sent-requests/"
           element={<SentRequests />}
         />
+        
+        <Route
+          path="/advertiser/ad-billing/"
+          element={<AdvertiserBillingScreen />}
+        />
+
+        <Route
+          path="/driver/earnings/"
+          element={<DriverBillingScreen />}
+        />
+
+         <Route
+          path="/agency/billing/:agencyId"
+          element={<AgencyBillingScreen />}
+        />
 
         <Route
           path="/driver/ad-simulation/"
@@ -140,14 +159,24 @@ const AppRoutes = () => {
           element={<AdSimulationMap />}
         />
 
-        <Route
+        {/* <Route
           path="/agency/simulate-ads-button"
           element={<SimulateAdsButton />}
-        />
+        /> */}
 
         <Route
           path="/driver/trip-stats/:vehicleReg"
           element={<TripStatsScreen />}
+        />
+
+        <Route
+          path="/advertiser/ad-stats"
+          element={<AdStatsScreen />}
+        />
+
+        <Route
+          path="/agency/agency-analytics/:adId"
+          element={<AgencyAnalyticsScreen />}
         />
 
         
