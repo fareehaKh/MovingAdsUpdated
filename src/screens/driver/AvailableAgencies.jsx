@@ -210,6 +210,21 @@ const AvailableAgencies = () => {
           >
             📊 Trip Stats
           </div>
+
+          <div
+            style={S.navItem}
+            onClick={() =>
+              navigate(
+                selectedVehicleReg
+                  ? `/driver/earnings`
+                  : "/driver"
+              )
+            }
+          >
+            💰 My Earnings
+          </div>
+
+          
         </nav>
 
         <div style={S.sidebarFooter}>

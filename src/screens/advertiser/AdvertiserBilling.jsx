@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 
 import {
   getUserSession,
@@ -10,6 +13,8 @@ import { getAdvertiserBillingApi } from "../../api/authapi";
 
 const AdvertiserBillingScreen = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const user = getUserSession();
 
   const [billingData, setBillingData] = useState([]);
@@ -32,15 +37,15 @@ const AdvertiserBillingScreen = () => {
   const loadBilling = async () => {
     try {
       setLoading(true);
-      const user = getUserSession();
-     
-      console.log("userrrr",user.UserId);
 
-      const response = await getAdvertiserBillingApi(user.UserId);
+      const response =
+        await getAdvertiserBillingApi(
+          user.UserId
+        );
 
       setBillingData(response.data || []);
     } catch (err) {
-      console.log("Billing fetch error:", err);
+      console.log(err);
       setBillingData([]);
     } finally {
       setLoading(false);
@@ -48,10 +53,17 @@ const AdvertiserBillingScreen = () => {
   };
 
   // =========================
-  // TOTAL BILL
+  // TOTALS
   // =========================
   const totalBill = billingData.reduce(
-    (sum, item) => sum + item.TotalBill,
+    (sum, item) =>
+      sum + Number(item.TotalBill || 0),
+    0
+  );
+
+  const totalTrips = billingData.reduce(
+    (sum, item) =>
+      sum + Number(item.TotalTrips || 0),
     0
   );
 
@@ -63,46 +75,141 @@ const AdvertiserBillingScreen = () => {
     navigate("/");
   };
 
+  // =========================
+  // ACTIVE SIDEBAR
+  // =========================
+  const isActive = (path) => {
+    return location.pathname.includes(path);
+  };
+
   return (
     <div
       style={{
         ...styles.page,
-        flexDirection: isMobile ? "column" : "row",
+        flexDirection: isMobile
+          ? "column"
+          : "row",
       }}
     >
       {/* SIDEBAR */}
       <aside
         style={{
           ...styles.sidebar,
-          width: isMobile ? "100%" : 240,
-          minWidth: isMobile ? "100%" : 240,
+          width: isMobile
+            ? "100%"
+            : 240,
+          minWidth: isMobile
+            ? "100%"
+            : 240,
+
+          borderRight: isMobile
+            ? "none"
+            : "1px solid rgba(255,255,255,0.07)",
+
+          borderBottom: isMobile
+            ? "1px solid rgba(255,255,255,0.07)"
+            : "none",
         }}
       >
-        <div style={styles.logo}>📄 MovingAds</div>
+        {/* LOGO */}
+        <div style={styles.sidebarLogo}>
+          <span>📢</span>
+          <span style={styles.logoText}>
+            MovingAds
+          </span>
+        </div>
 
-        <div style={styles.nav}>
+        {/* NAVIGATION */}
+        <nav style={styles.nav}>
           <div
-            style={styles.navItem}
+            style={{
+              ...styles.navItem,
+              ...(location.pathname ===
+              "/advertiser"
+                ? styles.navItemActive
+                : {}),
+            }}
             onClick={() =>
-              navigate("/advertiser/dashboard")
+              navigate("/advertiser")
             }
           >
             📊 Dashboard
           </div>
 
           <div
-            style={styles.navItem}
+            style={{
+              ...styles.navItem,
+              ...(isActive(
+                "/sent-requests"
+              )
+                ? styles.navItemActive
+                : {}),
+            }}
             onClick={() =>
-              navigate("/advertiser/billing")
+              navigate(
+                "/advertiser/sent-requests"
+              )
             }
           >
-            💳 Billing
+            📩 Sent Requests
           </div>
-        </div>
 
-        <div style={styles.footer}>
+          <div
+            style={{
+              ...styles.navItem,
+              ...(isActive("/ad-stats")
+                ? styles.navItemActive
+                : {}),
+            }}
+            onClick={() =>
+              navigate(
+                "/advertiser/ad-stats"
+              )
+            }
+          >
+            📈 Ad Stats
+          </div>
+
+          <div
+            style={{
+              ...styles.navItem,
+              ...(isActive(
+                "/ad-billing"
+              )
+                ? styles.navItemActive
+                : {}),
+            }}
+            onClick={() =>
+              navigate(
+                "/advertiser/ad-billing"
+              )
+            }
+          >
+            💳 Ad Billings
+          </div>
+        </nav>
+
+        {/* FOOTER */}
+        <div style={styles.sidebarFooter}>
+          <div style={styles.userBox}>
+            <div style={styles.avatar}>
+              {user?.Name?.[0]?.toUpperCase() ||
+                "A"}
+            </div>
+
+            <div>
+              <div style={styles.userName}>
+                {user?.Name}
+              </div>
+
+              <div style={styles.userRole}>
+                Advertiser
+              </div>
+            </div>
+          </div>
+
           <button
-            style={styles.logoutBtn}
+            style={styles.logout}
             onClick={handleLogout}
           >
             Logout
@@ -114,31 +221,63 @@ const AdvertiserBillingScreen = () => {
       <main
         style={{
           ...styles.main,
-          padding: isMobile ? 14 : 24,
+          padding: isMobile ? 14 : 22,
         }}
       >
-        <h1 style={styles.title}>
-          Advertiser Billing
-        </h1>
+        {/* TOP */}
+        <div style={styles.topBar}>
+          <div>
+            <h1 style={styles.title}>
+              Billing Overview
+            </h1>
+
+            <p style={styles.sub}>
+              View all billing records
+            </p>
+          </div>
+        </div>
 
         {loading ? (
-          <div style={styles.loading}>
+          <p style={{ color: "#aaa" }}>
             Loading billing...
-          </div>
+          </p>
         ) : billingData.length === 0 ? (
-          <div style={styles.empty}>
-            No billing records found
+          <div style={styles.emptyCard}>
+            No billing records found.
           </div>
         ) : (
           <>
-            {/* TOTAL BILL SUMMARY */}
-            <div style={styles.summaryCard}>
-              <h2>Total Collective Bill</h2>
-              <div style={styles.totalAmount}>
-                Rs. {totalBill.toFixed(2)}
+            {/* SUMMARY CARDS */}
+            <div style={styles.summaryGrid}>
+              <div style={styles.summaryCard}>
+                <div style={styles.summaryLabel}>
+                  Total Revenue
+                </div>
+
+                <div style={styles.summaryValue}>
+                  Rs.{" "}
+                  {totalBill.toFixed(2)}
+                </div>
               </div>
-              <div>
-                Across {billingData.length} Ads
+
+              <div style={styles.summaryCard}>
+                <div style={styles.summaryLabel}>
+                  Total Ads
+                </div>
+
+                <div style={styles.summaryValue}>
+                  {billingData.length}
+                </div>
+              </div>
+
+              <div style={styles.summaryCard}>
+                <div style={styles.summaryLabel}>
+                  Total Trips
+                </div>
+
+                <div style={styles.summaryValue}>
+                  {totalTrips}
+                </div>
               </div>
             </div>
 
@@ -149,62 +288,90 @@ const AdvertiserBillingScreen = () => {
                   key={bill.AdId}
                   style={styles.card}
                 >
-                  <h2 style={styles.adTitle}>
-                    {bill.AdTitle}
-                  </h2>
+                  {/* TOP */}
+                  <div style={styles.cardTop}>
+                    <div>
+                      <h2 style={styles.adTitle}>
+                        {bill.AdTitle}
+                      </h2>
 
-                  <div style={styles.detail}>
-                    <strong>Category:</strong>{" "}
-                    {bill.Category}
+                      <div
+                        style={
+                          styles.category
+                        }
+                      >
+                        {bill.Category}
+                      </div>
+                    </div>
+
+                    <div style={styles.billBox}>
+                      Rs. {bill.TotalBill}
+                    </div>
                   </div>
 
-                  <div style={styles.detail}>
-                    <strong>Status:</strong>{" "}
-                    {bill.AdStatus}
+                  {/* STATS */}
+                  <div style={styles.statsGrid}>
+                    <div style={styles.statCard}>
+                      <span>Trips</span>
+                      <strong>
+                        {bill.TotalTrips}
+                      </strong>
+                    </div>
+
+                    <div style={styles.statCard}>
+                      <span>Distance</span>
+                      <strong>
+                        {
+                          bill.TotalDistanceKm
+                        }{" "}
+                        km
+                      </strong>
+                    </div>
+
+                    <div style={styles.statCard}>
+                      <span>Hours</span>
+                      <strong>
+                        {
+                          bill.TotalTimeHours
+                        }
+                      </strong>
+                    </div>
+
+                    <div style={styles.statCard}>
+                      <span>Rate</span>
+                      <strong>
+                        Rs.{" "}
+                        {
+                          bill.AdvertiserRate
+                        }
+                      </strong>
+                    </div>
                   </div>
 
-                  <div style={styles.detail}>
-                    <strong>Advertiser:</strong>{" "}
-                    {bill.AdvertiserName}
-                  </div>
+                  {/* DETAILS */}
+                  <div style={styles.details}>
+                    <div style={styles.detailRow}>
+                      <span>Status</span>
+                      <strong>
+                        {bill.AdStatus}
+                      </strong>
+                    </div>
 
-                  <div style={styles.detail}>
-                    <strong>Email:</strong>{" "}
-                    {bill.AdvertiserEmail}
-                  </div>
+                    <div style={styles.detailRow}>
+                      <span>Agency</span>
+                      <strong>
+                        {bill.AgencyName}
+                      </strong>
+                    </div>
 
-                  <div style={styles.detail}>
-                    <strong>Agency:</strong>{" "}
-                    {bill.AgencyName}
-                  </div>
-
-                  <div style={styles.detail}>
-                    <strong>Advertiser Rate:</strong> Rs.{" "}
-                    {bill.AdvertiserRate}
-                  </div>
-
-                  <div style={styles.detail}>
-                    <strong>Total Trips:</strong>{" "}
-                    {bill.TotalTrips}
-                  </div>
-
-                  <div style={styles.detail}>
-                    <strong>Total Distance:</strong>{" "}
-                    {bill.TotalDistanceKm} km
-                  </div>
-
-                  <div style={styles.detail}>
-                    <strong>Total Time:</strong>{" "}
-                    {bill.TotalTimeMinutes} mins
-                  </div>
-
-                  <div style={styles.detail}>
-                    <strong>Total Hours:</strong>{" "}
-                    {bill.TotalTimeHours}
-                  </div>
-
-                  <div style={styles.billBox}>
-                    Rs. {bill.TotalBill}
+                    <div style={styles.detailRow}>
+                      <span>Email</span>
+                      <strong>
+                        {
+                          bill.AdvertiserEmail
+                        }
+                      </strong>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -228,116 +395,237 @@ const styles = {
     minHeight: "100vh",
     background: "#0f0f1a",
     color: "#fff",
-    fontFamily: "'Segoe UI', sans-serif",
+    fontFamily: "Segoe UI",
   },
 
+  // SIDEBAR
   sidebar: {
-    background: "rgba(255,255,255,0.03)",
+    background:
+      "rgba(255,255,255,0.03)",
     display: "flex",
     flexDirection: "column",
-    padding: "24px 0",
+    padding: "20px 0",
   },
 
-  logo: {
-    padding: "0 24px",
-    marginBottom: 30,
-    fontSize: 22,
+  sidebarLogo: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "0 18px",
+    marginBottom: 25,
     fontWeight: 700,
+  },
+
+  logoText: {
+    fontSize: 16,
   },
 
   nav: {
     flex: 1,
-    padding: "0 12px",
+    padding: "0 10px",
   },
 
   navItem: {
-    padding: "12px 16px",
+    padding: "10px 14px",
     borderRadius: 10,
     cursor: "pointer",
     color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
     marginBottom: 6,
   },
 
-  footer: {
-    padding: "0 16px",
-    borderTop: "1px solid rgba(255,255,255,0.07)",
-    paddingTop: 20,
+  navItemActive: {
+    background:
+      "rgba(167,139,250,0.18)",
+    color: "#a78bfa",
   },
 
-  logoutBtn: {
+  sidebarFooter: {
+    padding: "12px 16px",
+    borderTop:
+      "1px solid rgba(255,255,255,0.07)",
+  },
+
+  userBox: {
+    display: "flex",
+    gap: 10,
+    marginBottom: 10,
+  },
+
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: "50%",
+    background: "#7c5cff",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontWeight: 700,
+  },
+
+  userName: {
+    fontSize: 13,
+  },
+
+  userRole: {
+    fontSize: 11,
+    opacity: 0.5,
+  },
+
+  logout: {
     width: "100%",
-    padding: 10,
-    borderRadius: 8,
+    padding: 8,
     background: "transparent",
-    color: "#fff",
-    border: "1px solid rgba(255,255,255,0.2)",
+    border:
+      "1px solid rgba(255,255,255,0.1)",
+    color: "#aaa",
+    borderRadius: 8,
     cursor: "pointer",
   },
 
+  // MAIN
   main: {
     flex: 1,
-    overflowY: "auto",
+  },
+
+  topBar: {
+    marginBottom: 22,
   },
 
   title: {
+    margin: 0,
     fontSize: 28,
-    fontWeight: 700,
-    marginBottom: 20,
   },
 
-  loading: {
-    opacity: 0.7,
+  sub: {
+    opacity: 0.5,
+    fontSize: 13,
+    marginTop: 4,
   },
 
-  empty: {
-    opacity: 0.6,
+  emptyCard: {
+    padding: 30,
+    borderRadius: 16,
+    background:
+      "rgba(255,255,255,0.04)",
+    textAlign: "center",
+    color: "#888",
+  },
+
+  // SUMMARY
+  summaryGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(220px,1fr))",
+    gap: 16,
+    marginBottom: 24,
   },
 
   summaryCard: {
-    background: "rgba(255,255,255,0.05)",
-    padding: 20,
+    background:
+      "rgba(255,255,255,0.05)",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
     borderRadius: 16,
-    marginBottom: 24,
-    textAlign: "center",
+    padding: 20,
   },
 
-  totalAmount: {
-    fontSize: 34,
+  summaryLabel: {
+    fontSize: 13,
+    opacity: 0.6,
+    marginBottom: 10,
+  },
+
+  summaryValue: {
+    fontSize: 30,
     fontWeight: 700,
-    margin: "12px 0",
-    color: "#4ade80",
+    color: "#7c5cff",
   },
 
+  // GRID
   grid: {
     display: "grid",
-    gap: 16,
+    gridTemplateColumns:
+      "repeat(auto-fit,minmax(340px,1fr))",
+    gap: 18,
   },
 
+  // CARD
   card: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 16,
+    background:
+      "rgba(255,255,255,0.05)",
+    border:
+      "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 18,
     padding: 18,
   },
 
+  cardTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 18,
+  },
+
   adTitle: {
-    marginBottom: 14,
+    margin: 0,
+    marginBottom: 8,
     fontSize: 20,
   },
 
-  detail: {
-    marginBottom: 8,
-    fontSize: 14,
+  category: {
+    display: "inline-block",
+    background: "#7c5cff33",
+    padding: "5px 10px",
+    borderRadius: 30,
+    fontSize: 12,
   },
 
   billBox: {
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 12,
-    background: "rgba(74,222,128,0.15)",
-    fontSize: 22,
-    fontWeight: 700,
-    textAlign: "center",
+    background:
+      "rgba(74,222,128,0.15)",
     color: "#4ade80",
+    padding: "10px 14px",
+    borderRadius: 12,
+    fontWeight: 700,
+    fontSize: 18,
+    whiteSpace: "nowrap",
+  },
+
+  // STATS
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(2,1fr)",
+    gap: 12,
+    marginBottom: 18,
+  },
+
+  statCard: {
+    background:
+      "rgba(255,255,255,0.04)",
+    borderRadius: 12,
+    padding: 14,
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    fontSize: 13,
+    opacity: 0.9,
+  },
+
+  // DETAILS
+  details: {
+    borderTop:
+      "1px solid rgba(255,255,255,0.07)",
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    fontSize: 14,
+    gap: 10,
   },
 };

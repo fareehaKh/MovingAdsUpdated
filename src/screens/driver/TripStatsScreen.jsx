@@ -141,6 +141,15 @@ const TripStatsScreen = () => {
             📊 Trip Stats
           </div>
 
+          <div
+            style={styles.navItem}
+            onClick={() =>
+              navigate("/driver/earnings")
+            }
+          >
+            💰 My Earnings
+          </div>
+
           {/* <div
             style={styles.navItem}
             onClick={() =>

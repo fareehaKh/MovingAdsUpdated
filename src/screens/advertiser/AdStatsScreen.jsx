@@ -244,6 +244,18 @@ const AdStatsScreen = () => {
           >
             📈 Ad Stats
           </div>
+          <div
+            style={{
+              ...styles.navItem,
+              ...(isActive("/ad-billing")
+                ? styles.navItemActive
+                : {}),
+            }}
+            onClick={() => navigate("/advertiser/ad-billing")}
+          >
+             Ad Billings
+          </div>
+          
         </div>
 
         {/* FOOTER */}

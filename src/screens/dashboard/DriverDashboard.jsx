@@ -280,7 +280,7 @@ const DriverDashboard = () => {
               )
             }
           >
-             My Earnings
+            💰 My Earnings
           </div>
         </nav>
 
